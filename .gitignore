@@ -36,6 +36,7 @@ pgdata-*/
 pg_data/
 data/
 *.sql
+!sql/**/*.sql
 *.sqlc
 *.sql.gz
 *.dump
