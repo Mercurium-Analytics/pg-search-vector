@@ -8,7 +8,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE: ${{ github.repository_owner }}/pg-search-vector
+  # Hardcoded lowercase — Docker registry rejects mixed-case refs, and
+  # ${{ github.repository_owner }} preserves the "Mercurium-Analytics" case.
+  IMAGE: mercurium-analytics/pg-search-vector
 
 jobs:
   build-base:
@@ -44,7 +46,7 @@ jobs:
             type=semver,pattern=v{{version}}-pg17
             type=semver,pattern={{major}}.{{minor}}-pg17
             type=ref,event=branch,suffix=-pg17
-            type=sha,prefix=sha-,suffix=-pg17
+            type=sha,format=long,prefix=sha-,suffix=-pg17
             type=raw,value=latest-pg17,enable={{is_default_branch}}
 
       - name: Build + push base
