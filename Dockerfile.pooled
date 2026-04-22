@@ -6,7 +6,7 @@
 # Build:
 #   docker build -f Dockerfile.pooled -t pg-search-vector:pg17-pooled .
 
-ARG BASE_IMAGE=pg-search-vector:pg17
+ARG BASE_IMAGE=ghcr.io/mercurium-analytics/pg-search-vector:latest-pg17
 FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="pg-search-vector (pooled)"
