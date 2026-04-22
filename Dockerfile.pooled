@@ -1,0 +1,40 @@
+# pg-search-vector:pooled — Postgres + pgvector + pg_search + PgBouncer.
+#
+# One image, two processes. Plain bash supervisor under tini. No s6, no
+# supervisord — boring tech on purpose.
+#
+# Build:
+#   docker build -f Dockerfile.pooled -t pg-search-vector:pg17-pooled .
+
+ARG BASE_IMAGE=pg-search-vector:pg17
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="pg-search-vector (pooled)"
+LABEL org.opencontainers.image.description="Postgres 17 + pgvector + pg_search + PgBouncer."
+LABEL org.opencontainers.image.source="https://github.com/Mercurium-Analytics/pg-search-vector"
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends pgbouncer tini \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /etc/pgbouncer /var/log/pgbouncer /var/run/pgbouncer \
+ && chown -R postgres:postgres /etc/pgbouncer /var/log/pgbouncer /var/run/pgbouncer
+
+COPY pooled/gen-pgbouncer-config.sh  /usr/local/bin/gen-pgbouncer-config.sh
+COPY pooled/pooled-entrypoint.sh     /usr/local/bin/pooled-entrypoint.sh
+RUN chmod +x /usr/local/bin/gen-pgbouncer-config.sh /usr/local/bin/pooled-entrypoint.sh
+
+EXPOSE 5432 6432
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+  CMD pg_isready -U "${POSTGRES_USER:-postgres}"       -h 127.0.0.1 -p 5432 -q \
+   && pg_isready -U "${POSTGRES_APP_USER:-app}"        -h 127.0.0.1 -p 6432 -q \
+   || exit 1
+# 6432 probe uses the app user because only users in userlist.txt make it past
+# pgbouncer's startup handshake; pg_isready against an unknown user reports
+# the pooler as "rejecting connections".
+
+STOPSIGNAL SIGTERM
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/pooled-entrypoint.sh"]
+CMD []

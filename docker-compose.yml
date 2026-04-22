@@ -1,0 +1,16 @@
+# Minimal example — run pg-search-vector locally and connect at localhost:5432.
+services:
+  postgres:
+    image: pg-search-vector:pg17
+    build: .
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:

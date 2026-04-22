@@ -1,0 +1,17 @@
+# Dev + test dependencies for pg-search-vector-django.
+# Install with:
+#   uv pip install -r requirements-dev.txt
+# or:
+#   uv sync --group dev
+-r requirements.txt
+
+pytest>=8.0
+pytest-django>=4.8
+pytest-cov>=5.0
+build>=1.2
+twine>=5.0
+ruff>=0.5
+
+# Optional backends for exercising the embedder registry in tests
+pgvector>=0.2
+openai>=1.0

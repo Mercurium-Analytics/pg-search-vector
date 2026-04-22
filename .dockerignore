@@ -1,0 +1,41 @@
+# Source control
+.git
+.gitignore
+
+# Data directories — NEVER include in build context
+pgdata
+pgdata-*
+pg_data
+data
+dumps
+tmp_dump
+*.sql
+*.sqlc
+*.sql.gz
+*.dump
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+dist
+build
+.pytest_cache
+.venv
+venv
+
+# Editors / OS
+.DS_Store
+.idea
+.vscode
+*.swp
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Build artefacts
+.docker
+*.log
+tmp

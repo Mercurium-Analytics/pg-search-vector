@@ -1,0 +1,49 @@
+# Python (django subpackage)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*.textClipping
+
+# Env files — never commit secrets
+.env
+.env.*
+!.env.example
+
+# Local test data / runtime state — NEVER commit
+pgdata/
+pgdata-*/
+pg_data/
+data/
+*.sql
+*.sqlc
+*.sql.gz
+*.dump
+dump.sql
+dumps/
+tmp_dump/
+*.log
+tmp/
+
+# Docker build artifacts
+.docker/

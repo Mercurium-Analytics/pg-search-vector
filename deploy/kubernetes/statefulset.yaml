@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pg-search-vector
+  labels:
+    app: pg-search-vector
+spec:
+  clusterIP: None
+  selector:
+    app: pg-search-vector
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+    - name: pgbouncer
+      port: 6432
+      targetPort: 6432
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pg-search-vector-secrets
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: CHANGE_ME_SUPERUSER
+  POSTGRES_APP_PASSWORD: CHANGE_ME_APP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pg-search-vector
+spec:
+  serviceName: pg-search-vector
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pg-search-vector
+  template:
+    metadata:
+      labels:
+        app: pg-search-vector
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: db
+          image: ghcr.io/mercurium-analytics/pg-search-vector:pg17-pooled
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+            - name: pgbouncer
+              containerPort: 6432
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_DB
+              value: app
+            - name: POSTGRES_APP_USER
+              value: app
+            - name: PGBOUNCER_POOL_MODE
+              value: transaction
+            - name: PGBOUNCER_DEFAULT_POOL_SIZE
+              value: "20"
+            - name: PGBOUNCER_MAX_CLIENT_CONN
+              value: "500"
+          envFrom:
+            - secretRef:
+                name: pg-search-vector-secrets
+          volumeMounts:
+            - name: pg-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-h", "127.0.0.1"]
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-h", "127.0.0.1"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+  volumeClaimTemplates:
+    - metadata:
+        name: pg-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi

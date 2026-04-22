@@ -1,0 +1,32 @@
+# Render.com deploy for pg-search-vector (pooled variant).
+# Render doesn't support persistent disk on Docker services natively — use
+# their managed Postgres instead if you need full backups. This template is
+# for dev / staging environments on their persistent-disk tier.
+
+services:
+  - type: pserv
+    name: pg-search-vector
+    runtime: image
+    image:
+      url: ghcr.io/mercurium-analytics/pg-search-vector:pg17-pooled
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_DB
+        value: app
+      - key: POSTGRES_APP_USER
+        value: app
+      - key: POSTGRES_PASSWORD
+        sync: false         # set in dashboard
+      - key: POSTGRES_APP_PASSWORD
+        sync: false
+      - key: PGBOUNCER_POOL_MODE
+        value: transaction
+      - key: PGBOUNCER_DEFAULT_POOL_SIZE
+        value: "20"
+      - key: PGBOUNCER_MAX_CLIENT_CONN
+        value: "500"
+    disk:
+      name: pg-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 20

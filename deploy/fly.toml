@@ -1,0 +1,53 @@
+# Fly.io deploy for pg-search-vector (pooled variant).
+#
+# Usage:
+#   1. fly launch --copy-config --no-deploy    (edit app name below if needed)
+#   2. fly volumes create pg_data --size 10 --region <your-region>
+#   3. fly secrets set POSTGRES_PASSWORD=... POSTGRES_APP_PASSWORD=...
+#   4. fly deploy
+#
+# Private networking: Django/Celery connect to `<app>.internal:6432` (pooled).
+# Migrations / admin connect to `<app>.internal:5432` (direct).
+
+app            = "pg-search-vector"
+primary_region = "ord"
+
+[build]
+  image = "ghcr.io/mercurium-analytics/pg-search-vector:pg17-pooled"
+
+[env]
+  POSTGRES_USER                 = "postgres"
+  POSTGRES_DB                   = "app"
+  POSTGRES_APP_USER             = "app"
+  PGBOUNCER_POOL_MODE           = "transaction"
+  PGBOUNCER_DEFAULT_POOL_SIZE   = "20"
+  PGBOUNCER_MAX_CLIENT_CONN     = "500"
+
+# POSTGRES_PASSWORD + POSTGRES_APP_PASSWORD via: fly secrets set ...
+
+[[mounts]]
+  source      = "pg_data"
+  destination = "/var/lib/postgresql/data"
+
+[[services]]
+  internal_port = 5432
+  protocol      = "tcp"
+  [[services.ports]]
+    port = 5432
+
+[[services]]
+  internal_port = 6432
+  protocol      = "tcp"
+  [[services.ports]]
+    port = 6432
+
+[checks]
+  [checks.tcp]
+    port     = 5432
+    type     = "tcp"
+    interval = "15s"
+    timeout  = "2s"
+
+[[vm]]
+  size       = "shared-cpu-2x"
+  memory_mb  = 4096

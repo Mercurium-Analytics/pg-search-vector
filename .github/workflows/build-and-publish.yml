@@ -1,0 +1,109 @@
+name: Build & publish pg-search-vector
+
+on:
+  push:
+    tags: ['v*']
+    branches: ['main']
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ${{ github.repository_owner }}/pg-search-vector
+
+jobs:
+  build-base:
+    name: Build & push base image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      sha-tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags (base)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern=v{{version}}-pg17
+            type=semver,pattern={{major}}.{{minor}}-pg17
+            type=ref,event=branch,suffix=-pg17
+            type=sha,prefix=sha-,suffix=-pg17
+            type=raw,value=latest-pg17,enable={{is_default_branch}}
+
+      - name: Build + push base
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=base
+          cache-to: type=gha,mode=max,scope=base
+
+  build-pooled:
+    name: Build & push pooled image
+    needs: build-base
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags (pooled)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern=v{{version}}-pg17-pooled
+            type=semver,pattern={{major}}.{{minor}}-pg17-pooled
+            type=ref,event=branch,suffix=-pg17-pooled
+            type=sha,prefix=sha-,suffix=-pg17-pooled
+            type=raw,value=latest-pg17-pooled,enable={{is_default_branch}}
+
+      - name: Build + push pooled
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.pooled
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE }}:sha-${{ github.sha }}-pg17
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=pooled
+          cache-to: type=gha,mode=max,scope=pooled
